@@ -120,7 +120,7 @@ VITE_API_BASE_URL=http://localhost:5000/api
 1. Clone the repository:
 
 ```bash
-git clone <your-repo-url>
+git clone <https://github.com/Ankit24072002/ai-rag-knowledge-assistant.git>
 cd ai-rag-assistant
 ```
 
