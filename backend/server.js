@@ -9,6 +9,7 @@ import { fileURLToPath } from 'url';
 import { connectDB } from './db/connectDB.js';
 import documentRoutes from './routes/documentRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import { hydrateDocumentStore } from './services/ragService.js';
 
 dotenv.config();
@@ -49,6 +50,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+app.use('/api/auth', authRoutes);
 app.use('/api/documents', documentRoutes);
 app.use('/api/chat', chatRoutes);
 

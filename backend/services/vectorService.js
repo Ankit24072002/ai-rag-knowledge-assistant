@@ -83,3 +83,19 @@ export async function searchRelevantChunks(questionEmbedding, limit = 5) {
     return [];
   }
 }
+
+export async function deleteDocumentChunks(documentName) {
+  try {
+    const collection = await client.getCollection(COLLECTION_NAME);
+    if (!collection) return;
+
+    await client.delete(COLLECTION_NAME, {
+      filter: {
+        must: [{ key: 'documentName', match: { value: documentName } }],
+      },
+      wait: true,
+    });
+  } catch (error) {
+    console.warn('Failed to remove document chunks from Qdrant:', error.message);
+  }
+}

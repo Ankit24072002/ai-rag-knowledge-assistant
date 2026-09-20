@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const documentSchema = new mongoose.Schema(
   {
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     fileName: { type: String, required: true },
     originalName: { type: String, required: true },
     fileSize: { type: Number, default: 0 },

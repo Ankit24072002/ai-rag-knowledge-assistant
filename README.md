@@ -120,7 +120,7 @@ VITE_API_BASE_URL=http://localhost:5000/api
 1. Clone the repository:
 
 ```bash
-git clone <your-repo-url>
+  git clone https://github.com/Ankit24072002/ai-rag-knowledge-assistant.git
 cd ai-rag-assistant
 ```
 
@@ -217,6 +217,16 @@ GET /api/documents
 POST /api/documents/upload
 ```
 
+### Authentication
+
+```http
+POST /api/auth/register
+POST /api/auth/login
+GET /api/auth/me
+```
+
+Authenticated document and chat requests require a bearer token. Documents and conversations are scoped to the signed-in user, while administrator accounts can access document analytics.
+
 ### Chat and Q&A
 
 ```http
@@ -237,14 +247,16 @@ Request body example:
 1. Open the frontend in the browser.
 2. Upload a PDF or TXT file to the library.
 3. Wait for the document to be processed and indexed.
-4. Ask a question about the document content.
-5. Review the response and cited sources.
-6. Paste a screenshot to ask visual questions when relevant.
+4. Sign in or create an account.
+5. Ask a question about the document content.
+6. Review the response and cited sources.
+7. Paste a screenshot to ask visual questions when relevant.
 
 ## Notes
 
 - The app is designed for local-first deployment and keeps AI processing on your own machine.
-- Qdrant and MongoDB must be running before document ingestion and chat requests work correctly.
+- MongoDB must be running for authentication, document metadata, and chat history.
+- Qdrant is used for vector search when available; the backend falls back to local retrieval when it is unavailable.
 - If Ollama is not started or the required models are missing, the app will return a friendly setup message.
 - Uploaded document files are stored under the backend uploads directory.
 
@@ -256,7 +268,7 @@ cd ai-rag-assistant
 docker compose up -d
 
 # Start backend
-dcd backend
+cd backend
 npm run dev
 
 # Start frontend
@@ -272,12 +284,10 @@ npm run build
 
 Potential enhancements for this project include:
 
-- multi-document deletion and management
-- chat history per user session
 - improved chunking and metadata extraction
 - support for more file types such as DOCX and CSV
-- admin dashboard for document analytics
-- authentication and multi-user access
+- role management and invitation-based team onboarding
+- richer source previews and document-level permissions
 
 ## Summary
 

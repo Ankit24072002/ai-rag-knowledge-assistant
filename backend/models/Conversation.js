@@ -11,7 +11,8 @@ const messageSchema = new mongoose.Schema(
 
 const conversationSchema = new mongoose.Schema(
   {
-    userId: { type: String, default: 'anonymous' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    sessionId: { type: String, default: 'anonymous' },
     title: { type: String, default: 'New conversation' },
     messages: [messageSchema],
     createdAt: { type: Date, default: Date.now },

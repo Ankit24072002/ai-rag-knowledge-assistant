@@ -1,5 +1,9 @@
 import dotenv from 'dotenv';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { upsertChunks } from './vectorService.js';
+import { extractTextFromFile, processDocument } from './documentService.js';
 
 dotenv.config();
 
@@ -7,18 +11,44 @@ const ollamaUrl = (process.env.OLLAMA_URL || 'http://localhost:11434').replace(/
 const embeddingModel = process.env.OLLAMA_EMBEDDING_MODEL || 'nomic-embed-text';
 const chatModel = process.env.OLLAMA_CHAT_MODEL || 'llama3.2';
 const visionModel = process.env.OLLAMA_VISION_MODEL || 'llava';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const documentStore = new Map();
 
 export async function hydrateDocumentStore() {
   const { default: Document } = await import('../models/Document.js');
-  const documents = await Document.find({ 'chunks.0': { $exists: true } }).lean();
+  const documents = await Document.find().sort({ createdAt: 1 });
 
   documents.forEach((document) => {
-    documentStore.set(document.originalName, document.chunks);
+    if (Array.isArray(document.chunks) && document.chunks.length) {
+      documentStore.set(document.originalName, document.chunks);
+    }
   });
 
-  console.log(`Loaded ${documents.length} document libraries into memory.`);
+  for (const document of documents) {
+    if (documentStore.has(document.originalName) || !document.fileName) continue;
+
+    const filePath = path.join(__dirname, '..', 'uploads', document.fileName);
+    if (!fs.existsSync(filePath)) continue;
+
+    try {
+      const extractedText = await extractTextFromFile(filePath);
+      const result = await processDocument(document.originalName, extractedText);
+      const chunksWithEmbeddings = await createEmbeddingsForDocument(document.originalName, result.chunks);
+
+      document.chunks = chunksWithEmbeddings;
+      document.chunkCount = result.chunkCount;
+      document.totalCharacters = result.totalCharacters;
+      await document.save();
+      documentStore.set(document.originalName, chunksWithEmbeddings);
+      console.log(`Rebuilt index for ${document.originalName}.`);
+    } catch (error) {
+      console.warn(`Unable to rebuild index for ${document.originalName}:`, error.message);
+    }
+  }
+
+  console.log(`Loaded ${documentStore.size} document libraries into memory.`);
 }
 
 function cosineSimilarity(a, b) {
@@ -61,6 +91,10 @@ export async function embedText(text) {
 
 export function addDocumentToStore(documentName, chunks) {
   documentStore.set(documentName, chunks);
+}
+
+export function removeDocumentFromStore(documentName) {
+  documentStore.delete(documentName);
 }
 
 export async function createEmbeddingsForDocument(documentName, chunks) {
@@ -136,7 +170,8 @@ export async function answerQuestion(question, image) {
   const hasImage = Boolean(image);
 
   try {
-    const relevantChunks = await retrieveRelevantChunks(question, 5);
+    const listQuestion = /\b(all|every|each|list|extract|projects?|skills?|experience|responsibilit(?:y|ies))\b/i.test(question);
+    const relevantChunks = await retrieveRelevantChunks(question, listQuestion ? 10 : 5);
     const context = relevantChunks
       .map((chunk) => `Source: ${chunk.metadata.documentName} (Page ${chunk.metadata.page})\n${chunk.text}`)
       .join('\n\n');
@@ -162,7 +197,7 @@ export async function answerQuestion(question, image) {
           {
             role: 'system',
             content:
-              'You answer only using the provided context. If the answer is not present in the retrieved context, state that the uploaded documents do not contain enough information to answer confidently.',
+              'Answer only from the provided document context. For requests to list, extract, summarize, or identify all items, combine information across every relevant context section and return a complete, clearly structured answer. If the answer is not present in the context, state that the uploaded documents do not contain enough information to answer confidently.',
           },
           userMessage,
         ],
